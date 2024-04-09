@@ -1,4 +1,4 @@
-# A minimize version of 3DGS
+# A minimize training version of 3DGS
 
 ## Cloning the Repository
 
