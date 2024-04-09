@@ -14,3 +14,4 @@ dependencies:
   - tqdm
   - pip:
     - git+https://github.com/camenduru/simple-knn.git
+    - git+https://github.com/GAP-LAB-CUHK-SZ/gaustudio.git
