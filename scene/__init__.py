@@ -44,6 +44,7 @@ class Scene:
                                             "images": args.images,
                                             "resolution":resolution_scales[0], "data_device":"cuda", \
                                             "eval": False})
+        _dataset.export(os.path.join(self.model_path, "cameras.json"))
         print("Loading Training Cameras")
         self.train_cameras[resolution_scales[0]] = _dataset.all_cameras
         print("Loading Test Cameras")
