@@ -13,10 +13,9 @@ import os
 import random
 import json
 from utils.system_utils import searchForMaxIteration
-from scene.dataset_readers import sceneLoadTypeCallbacks
 from scene.gaussian_model import GaussianModel
 from arguments import ModelParams
-from utils.camera_utils import cameraList_from_camInfos, camera_to_JSON
+from gaustudio import datasets
 
 class Scene:
 
@@ -36,43 +35,20 @@ class Scene:
             else:
                 self.loaded_iter = load_iteration
             print("Loading trained model at iteration {}".format(self.loaded_iter))
-
+        
         self.train_cameras = {}
         self.test_cameras = {}
-
-        if os.path.exists(os.path.join(args.source_path, "sparse")):
-            scene_info = sceneLoadTypeCallbacks["Colmap"](args.source_path, args.images, args.eval)
-        elif os.path.exists(os.path.join(args.source_path, "transforms_train.json")):
-            print("Found transforms_train.json file, assuming Blender data set!")
-            scene_info = sceneLoadTypeCallbacks["Blender"](args.source_path, args.white_background, args.eval)
-        else:
-            assert False, "Could not recognize scene type!"
-
-        if not self.loaded_iter:
-            with open(scene_info.ply_path, 'rb') as src_file, open(os.path.join(self.model_path, "input.ply") , 'wb') as dest_file:
-                dest_file.write(src_file.read())
-            json_cams = []
-            camlist = []
-            if scene_info.test_cameras:
-                camlist.extend(scene_info.test_cameras)
-            if scene_info.train_cameras:
-                camlist.extend(scene_info.train_cameras)
-            for id, cam in enumerate(camlist):
-                json_cams.append(camera_to_JSON(id, cam))
-            with open(os.path.join(self.model_path, "cameras.json"), 'w') as file:
-                json.dump(json_cams, file)
-
-        if shuffle:
-            random.shuffle(scene_info.train_cameras)  # Multi-res consistent random shuffling
-            random.shuffle(scene_info.test_cameras)  # Multi-res consistent random shuffling
-
-        self.cameras_extent = scene_info.nerf_normalization["radius"]
-
-        for resolution_scale in resolution_scales:
-            print("Loading Training Cameras")
-            self.train_cameras[resolution_scale] = cameraList_from_camInfos(scene_info.train_cameras, resolution_scale, args)
-            print("Loading Test Cameras")
-            self.test_cameras[resolution_scale] = cameraList_from_camInfos(scene_info.test_cameras, resolution_scale, args)
+        
+        # Initialize dataset with gaustudio.datasets
+        _dataset = datasets.make({"name": args.dataset, "source_path": args.source_path, \
+                                            "images": args.images,
+                                            "resolution":resolution_scales[0], "data_device":"cuda", \
+                                            "eval": False})
+        print("Loading Training Cameras")
+        self.train_cameras[resolution_scales[0]] = _dataset.all_cameras
+        print("Loading Test Cameras")
+        self.test_cameras[resolution_scales[0]] = []
+        self.cameras_extent = _dataset.cameras_extent
 
         if self.loaded_iter:
             self.gaussians.load_ply(os.path.join(self.model_path,
@@ -80,7 +56,14 @@ class Scene:
                                                            "iteration_" + str(self.loaded_iter),
                                                            "point_cloud.ply"))
         else:
-            self.gaussians.create_from_pcd(scene_info.point_cloud, self.cameras_extent)
+            # Initialize pcd with gaustudio.initializers
+            from gaustudio.pipelines import initializers
+            from gaustudio import models
+            pcd = models.make("general_pcd")
+            initializer_config = {"name":'colmap', "workspace_dir":args.source_path}
+            initializer = initializers.make(initializer_config)
+            initializer(pcd, _dataset, overwrite=False)
+            self.gaussians.create_from_pcd(pcd, self.cameras_extent)
 
     def save(self, iteration):
         point_cloud_path = os.path.join(self.model_path, "point_cloud/iteration_{}".format(iteration))
