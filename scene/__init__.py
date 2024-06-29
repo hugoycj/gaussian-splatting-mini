@@ -41,7 +41,7 @@ class Scene:
         
         # Initialize dataset with gaustudio.datasets
         _dataset = datasets.make({"name": args.dataset, "source_path": args.source_path, \
-                                            "images": args.images,
+                                            "images": args.images, "white_background": args.white_background
                                             "resolution":resolution_scales[0], "data_device":"cuda", \
                                             "eval": False})
         _dataset.export(os.path.join(self.model_path, "cameras.json"))

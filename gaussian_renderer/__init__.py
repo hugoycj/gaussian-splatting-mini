@@ -92,7 +92,7 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         rotations = rotations,
         cov3D_precomp = cov3D_precomp)
 
-    rendered_image = rendered_image + (1-rendered_final_opacity).repeat(3, 1, 1) * bg_color.unsqueeze(-1).unsqueeze(-1).repeat(1, rendered_image.size(1), rendered_image.size(2))
+    rendered_image = rendered_image + (1-rendered_final_opacity).repeat(3, 1, 1) * bg_color
     # Those Gaussians that were frustum culled or had a radius of 0 were not visible.
     # They will be excluded from value updates used in the splitting criteria.
     return {"render": rendered_image,
