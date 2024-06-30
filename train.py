@@ -66,11 +66,17 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 bg_image_tensor = torch.zeros((height, width, 3)).to("cuda")
         render_pkg = render(viewpoint_cam, gaussians, pipe, bg)
         image, viewspace_point_tensor, visibility_filter, radii = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"]
+        alpha = render_pkg["alpha"][0]
 
         # Loss
         gt_image = viewpoint_cam.image.cuda().permute(2, 0, 1)
         Ll1 = l1_loss(image, gt_image)
         loss = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * (1.0 - ssim(image, gt_image))
+        
+        # mask loss
+        if viewpoint_cam.mask is not None and opt.mask_from_iter < iteration < opt.mask_until_iter:            
+            loss += (~viewpoint_cam.mask * alpha).mean() * opt.lambda_mask
+
         loss.backward()
 
         iter_end.record()
