@@ -61,9 +61,9 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             bg = viewpoint_cam.bg_image.to("cuda").permute(2, 0, 1)
         else:
             if dataset.white_background:
-                bg_image_tensor = torch.ones((height, width, 3)).to("cuda")
+                bg = torch.ones((3, viewpoint_cam.image_height, viewpoint_cam.image_width)).to("cuda")
             else:
-                bg_image_tensor = torch.zeros((height, width, 3)).to("cuda")
+                bg = torch.zeros((3, viewpoint_cam.image_height, viewpoint_cam.image_width)).to("cuda")
         render_pkg = render(viewpoint_cam, gaussians, pipe, bg)
         image, viewspace_point_tensor, visibility_filter, radii = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"]
         alpha = render_pkg["alpha"][0]
