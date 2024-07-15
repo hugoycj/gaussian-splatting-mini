@@ -61,7 +61,12 @@ class Scene:
             from gaustudio.pipelines import initializers
             from gaustudio import models
             pcd = models.make("general_pcd")
-            initializer_config = {"name":'colmap', "workspace_dir":args.source_path}
+            initializer_name = args.initializer
+            if args.dataset == "colmap" and initializer_name == 'colmap':
+                initializer_workspace = args.source_path
+            else:
+                initializer_workspace = os.path.join(args.source_path, 'tmp_'+initializer_name)
+            initializer_config = {"name": initializer_name, "workspace_dir": initializer_workspace}
             initializer = initializers.make(initializer_config)
             initializer(pcd, _dataset, overwrite=False)
             self.gaussians.create_from_pcd(pcd, self.cameras_extent)
